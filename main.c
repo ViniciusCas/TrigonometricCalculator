@@ -1,64 +1,105 @@
 #include <stdio.h>
 #include <math.h>
-#include <gconio.h>
+#include <windows.h>
+#include <conio.h>
+#include "conio_functions.h" /*substitution of conio.c*/
+#include <stdlib.h>
+#include <locale.h>
+
+#define downArrow 80
+#define upArrow 72
+#define esc 27
+#define enter 13
+#define f1 59
+
+#define screenColumns 90
+#define horizontalCenter 45
+#define screenRows 40
+#define verticalCenter 20
 
 //function headers 
 int mainMenu();
 int measureMenu();
 int menuSelection(int, int);
 int reprocessing();
-double getAngle();
-double convertMeasure(double);
-double calculate(int, double);
+double getValue();
+double convertMeasure(int, double);
+double calculate(double);
 void printHeader();
-void printCalculus(int, double, double);
+void printCalculus(double, double);
+
 
 //global variables
-int measure;
+int measure, operation;
 
 int main() {
+	system("mode con:cols=90 lines=20");
+	SetConsoleTitle("Calculadora Trigonometrica");
+	setlocale(LC_CTYPE, "Portuguese"); 
+	cursor(0);
+    
+	int out = 0;
+    double value, result;
 
-    int operation;
-    double angle, result;
-
-    operation = mainMenu();
-    measure = measureMenu();
-
-    angle = getAngle();
-
-    printCalculus(operation, angle, calculate(operation, angle));   
+	do{
+		value = 0; result = 0;
+		operation = mainMenu();
+	    measure = measureMenu();
+	
+		value = getValue();
+	
+	    printCalculus(value, calculate(value));
+	    getch();
+	    
+		out = reprocessing();	
+	}while(out != 2); 
 
     return 0;
 }
 
 void printHeader(){
-    clrscr();
-    gotoxy(15,1); printf("CALCULADORA TRIGONOMETRICA");
+	textbackground(15);
+	textcolor(0);
+	
+    system("cls");
+    int i;
+    for(i=0;i<screenColumns;i++){
+	    gotoxy(i,1);
+    	textbackground(14);printf(" ");
+    }
+    
+    gotoxy(horizontalCenter - 13,1); printf("CALCULADORA TRIGONOMÉTRICA");
+    textbackground(15);
 }
 
 int mainMenu() {
     printHeader();
 
-    gotoxy(3,3); printf("Seno");
-    gotoxy(3,4); printf("Cosseno");
-    gotoxy(3,5); printf("Tangente");
-    gotoxy(3,6); printf("Cossecante");
-    gotoxy(3,7); printf("Secante");
-    gotoxy(3,8); printf("Cotangente");
-    gotoxy(3,9); printf("Arcoseno");
-    gotoxy(3,10); printf("Arcocosseno");
-    gotoxy(3,11); printf("Arcotangente");
+	gotoxy(3,3); printf("Selecione a operação a ser realizada: ");
+    gotoxy(3,5); printf("Seno");
+    gotoxy(3,6); printf("Cosseno");
+    gotoxy(3,7); printf("Tangente");
+    gotoxy(3,8); printf("Cossecante");
+    gotoxy(3,9); printf("Secante");
+    gotoxy(3,10); printf("Cotangente");
+    gotoxy(3,11); printf("Arcoseno");
+    gotoxy(3,12); printf("Arcocosseno");
+    gotoxy(3,13); printf("Arcotangente");
 
-    return menuSelection(3,11);
+    return menuSelection(5,13);
 }
 
 int measureMenu(){
     printHeader();
 
-    gotoxy(3,3);printf("Radianos");
-    gotoxy(3,4);printf("Graus");
+	gotoxy(3,3);
+	if(operation<7)printf("Ângulo de entrada medido em: ");
+	else printf("Resultado em: ");
+	
+    gotoxy(3,5);printf("Radianos");
+    gotoxy(3,6);printf("Graus");
 
-    return menuSelection(3,4);
+    return menuSelection(4,5);
 }
 
 int menuSelection(int rowMin, int rowMax){
@@ -66,51 +107,59 @@ int menuSelection(int rowMin, int rowMax){
     int aux = rowMin;
     char cursor;
 
-    gotoxy(0,aux); printf("> ");
+    gotoxy(0,aux); printf(" >");
     while (!choice) {
         cursor = getch();
-        if (cursor == '\033') {
-            getch();
-            cursor = getch();
-            gotoxy(0,aux); printf("  ");
-            switch(cursor) {
-                case 'A':
-                    if(aux == rowMin) aux = rowMax;
+        gotoxy(0,aux); printf("  ");
+        
+        switch(cursor){
+        	case upArrow:
+        		if(aux == rowMin) aux = rowMax;
                     else aux --;
                     break;
-                case 'B':
-                    if(aux == rowMax) aux = rowMin;
+            case downArrow:
+            	if(aux == rowMax) aux = rowMin;
                     else aux++;
                     break;
-            }
-        }
-        else if(cursor == 10){
-            choice = aux-rowMin+1;
-        }
-        gotoxy(0,aux); printf("> ");
+            case enter:
+            	choice = aux-rowMin+1;
+		}
+        
+        gotoxy(0,aux); printf(" >");
     }
     
     return choice;
 }
 
-double convertMeasure(double angle){
-    angle *= M_PI / 180;
-
+double convertMeasure(int direction, double angle){
+	float M_PI = 3.141596;
+	if(direction == 1) angle *= M_PI / 180;
+	else angle *= 180 / M_PI;
+    
     return angle;
 }
 
-double getAngle(){
-    double angle;
+double getValue(){
+    double v;
 
     printHeader();
     gotoxy(0,3); printf("Insira o valor: ");
-    scanf("%lf", &angle);
-    if(measure != 1) angle = convertMeasure(angle);
-
-    return angle;
+    scanf(" %lf", &v);
+    
+    //if operation is asin, acos, atg => doesn't convert at all
+    if(operation >= 7){
+    	return v;
+	}
+    
+    //if angle given in degrees convert to radians
+	if(measure != 1) {
+		v = convertMeasure(1, v);	
+	}
+	
+    return v;
 }
 
-double calculate(int operation, double angle) {
+double calculate(double angle) {
     switch (operation) {
         case 1:
             /* seno */
@@ -143,44 +192,61 @@ double calculate(int operation, double angle) {
     }
 }
 
-void printCalculus(int operation, double angle, double result) {
+void printCalculus(double value, double result) {
+	//if degrees selected in first place, convert from rad back to degrees
+	//but only if operation isn't any of arc functions
+	if(measure != 1) {
+		if(operation < 7)
+			value = convertMeasure(0, value);
+		else 
+			result = convertMeasure(0,result);
+	}
     switch (operation) {
         case 1:
             /* seno */
-            gotoxy(0,3); printf("Seno de %.5lf: %.3lf\n", angle, result);
+            gotoxy(0,3); printf("Seno de %.2lf: %.3lf\n", value, result);
             break;
         case 2:
             /* cosseno */
-            gotoxy(0,3); printf("Cosseno de %.5lf: %.3lf\n", angle, result);
+            gotoxy(0,3); printf("Cosseno de %.2lf: %.3lf\n", value, result);
             break;
         case 3:
             /* tangente */
-            gotoxy(0,3); printf("Tangente de %.5lf: %.3lf\n", angle, result);
+            gotoxy(0,3); printf("Tangente de %.2lf: %.3lf\n", value, result);
             break;
         case 4:
             /* cossecante */
-            gotoxy(0,3); printf("Cossecante de %.5lf: %.3lf\n", angle, result);
+            gotoxy(0,3); printf("Cossecante de %.2lf: %.3lf\n", value, result);
             break;
         case 5:
             /* secante */
-            gotoxy(0,3); printf("Secante de %.5lf: %.3lf\n", angle, result);
+            gotoxy(0,3); printf("Secante de %.2lf: %.3lf\n", value, result);
             break;
         case 6:
             /* cotangente */
-            gotoxy(0,3); printf("Cotangente de %.5lf: %.3lf\n", angle, result);
+            gotoxy(0,3); printf("Cotangente de %.2lf: %.3lf\n", value, result);
             break;
         case 7:
             /* arco seno */
-            gotoxy(0,3); printf("arco seno de %.5lf: %.3lf\n", angle, result);
+            gotoxy(0,3); printf("arco seno de %.2lf: %.3lf\n", value, result);
             break;
         case 8:
             /* arco cosseno */
-            gotoxy(0,3); printf("arco cosseno de %.5lf: %.3lf\n", angle, result);
+            gotoxy(0,3); printf("arco cosseno de %.2lf: %.3lf\n", value, result);
             break;
         case 9:
             /* arco tangente */
-            gotoxy(0,3); printf("Arco tangente de %.5lf: %.3lf\n", angle, result);
+            gotoxy(0,3); printf("Arco tangente de %.2lf: %.3lf\n", value, result);
             break;
     }
+    
+    gotoxy(10,5); printf("Pressione qualquer tecla para prosseguir.");
 }
 
+int reprocessing(){
+	printHeader();
+	gotoxy(3,3);printf("Deseja calcular novamente?");
+	gotoxy(3,5);printf("Sim");
+    gotoxy(3,6);printf("Não");
+    return menuSelection(5,6);
+}
